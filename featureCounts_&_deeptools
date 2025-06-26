@@ -65,17 +65,23 @@ plotHeatmap -m  /path/to/output_matrix/matrix_deepTools_expression_${regions}.ma
 
 #Same options were used for plotting the log2 fold change of expression in deregulated genes, using separated bedfiles for protein-coding and non-coding + remove --perGroup in plotProfile 
 
-## ChIP profile
+## ChIP profiles: one graph per mark
 # For enhancers (scale regions)
-computeMatrix scale-regions -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+computeMatrix scale-regions -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}_${variant/or/controls}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
 
-plotProfile -m /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz -out profile_${ChIP_mark}_${regions}.pdf --plotTitle "${ChIP_mark} in ${regions}" --colors "#1c6bd8" "#6fa3ec" --samplesLabel 'Dox' 'Unt'
+plotProfile -m /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz -out profile_${ChIP_mark}_${regions}.pdf --plotTitle "${ChIP_mark} in ${regions}" --colors "#A9A2A1" "#E38612" "#add8e6" "#ffb90f" --regionsLabel "Control" "H1X_KD" "H12_KD" "H14_KD"
 
 # For fantoms (reference-point)
-computeMatrix reference-point -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+computeMatrix reference-point -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}_${variant/or/controls}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
 
-plotProfile -m /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz -out profile_${ChIP_mark}_${regions}.pdf --plotTitle "${ChIP_mark} in ${regions}" --colors "#1c6bd8" "#6fa3ec" --samplesLabel 'Dox' 'Unt'
+plotProfile -m /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz -out profile_${ChIP_mark}_${regions}.pdf --plotTitle "${ChIP_mark} in ${regions}" --colors "#A9A2A1" "#E38612" "#add8e6" "#ffb90f" --regionsLabel "Control" "H1X_KD" "H12_KD" "H14_KD"
 
+
+## ChIP profiles: one graph per KD and region (up or downregulated in each KD)
+
+computeMatrix scale-regions/or/reference-point -S ${input_dir}/H1*.bw -R /path/to/bed_files/*${variantKD}*.bed -p 16 -b 0 -a 0 -o path/to/output_matrix/matrix_deepTools_${variantKD}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+
+plotProfile -m path/to/output_matrix/matrix_deepTools_${variantKD}.mat.gz -out profile_${variantKD}_H1s_signals.pdf --plotTitle "${variant}" --plotHeight 10 --plotWidth 10 --outFileNameData /ajvbmc-data/Ana/newAna/CheRNAseq/AT_gene_content/promoters_bed/profile_${variant}_atgroups_all.tab --perGroup --samplesLabel 'H1.0' 'H1.2' 'H1.4' 'H1.5' 'H1X' --colors "#cd2626" "#add8e6" "#ffb90f" "#a2cd5a" "#ff8c00"
 
 
 ## Extract unt ChIP signal in regions of interest
