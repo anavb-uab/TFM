@@ -1,0 +1,96 @@
+
+#--------------
+#FEATURECOUNTS - CheRNAseq as example
+#--------------
+input_dir="path/to/bam_files"
+
+## get gene counts by transcript and exon
+
+#RNAseq gtf CheRNAseq counts
+
+featureCounts -p -s 2 -M -O --fraction --extraAttributes "exon,transcript_name" -f -a /path/to/selected_genes.gtf  -o /Che_and_RNAseq/mapping/cTSS_genes_${experiment}_${variant}_r${r}_${treatment}.txt ${input_dir}/bam_file_*${variant}sh_${treatment}_r${r}*.bam
+
+# paste/cut resulting in : file cols - dox1 dox2 dox3 unt1 unt2 unt3
+paste /Che_and_RNAseq/mapping/cTSS_genes_${experiment}_${variant}*.txt > /Che_and_RNAseq/mapping/pasted_cTSS_genes_${experiment}_${variant}.txt
+cut -d$'\t' -f1-9,18,27,36,45,54 /Che_and_RNAseq/mapping/pasted_cTSS_genes_${experiment}_${variant}.txt > /Che_and_RNAseq/mapping/feature_counts_cTSS_genes_${experiment}_${variant}.txt
+
+
+
+
+## get whole gene counts (not by exons nor transcripts) of all genes
+
+featureCounts -p -s 2 -M -O --fraction -t gene --extraAttributes gene_name -a /path/to/Ensembl_Homo_sapiens.GRCh37.87.sorted.gtf -o Che_RNAseq_${variant}/featureCounts_Che_RNAseq_${variant}_${treatment}_r${r}_gene_expression.txt ${input_dir}/bam_file*${variant}sh_${treatment}_r${r}*.bam
+
+#paste cut resulting in : file dox cols - dox1 dox2 dox3; file unt cols - unt1 unt2 unt3
+paste Che_RNAseq_${variant}/featureCounts_Che_RNAseq_${variant}_${treatment}_r123_gene_expression.txt > Che_RNAseq_${variant}/pasted_Che_RNAseq_${variant}_${treatment}_r123_gene_expression.txt
+cut -d$'\t' -f1-8,16,24 Che_RNAseq_${variant}/pasted_Che_RNAseq_${variant}_${treatment}_r123_gene_expression.txt > Che_RNAseq_${variant}/feature_counts_Che_RNAseq_${variant}_${treatment}_r123_gene_expression.txt
+
+
+
+## gtf (FANTOMs and New annotation)/ SAF (EnhancerAtlas) non-coding regions
+
+#gtf
+featureCounts -p -s 2 -M --fraction -g 'transcript_id' -t transcript --extraAttributes gene_id -a /path/to/FANTOM_${class}.gtf -o /Che_RNAseq_${variant}/featureCounts_Che_RNAseq_${variant}_${treatment}_r${r}_FANTOMs${class}.txt ${input_dir}/bam_file_*${variant}sh_${treatment}_r${r}*.bam
+#+ paste/cut resulting in : file cols - dox1 dox2 dox3 unt1 unt2 unt3
+
+
+#saf
+featureCounts -p -s 2 -M -F SAF --fraction -a /path/to/enhAtlas_${strand}.saf -o /Che_RNAseq_${variant}/featureCounts_Che_RNAseq_${variant}_${treatment}_r${r}_enhancerAtlas_${strand}.txt ${input_dir}/bam_file_*${variant}sh_${treatment}_r${r}*.bam
+#+ paste/cut resulting in : file cols - dox1 dox2 dox3 unt1 unt2 unt3
+
+
+
+
+#--------------
+#DEEPTOOLS - CheRNAseq as example
+#--------------
+
+input_dir="path/to/bw_files"
+##Expression profile + heatmap (Dox vs unt)
+
+#For enhancers (scale regions)
+computeMatrix scale-regions -S ${input_dir}/CheRNASeq_${variant}_r123.bw -R /path/to/bed_files/${regions}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_expression_${regions}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+#--missingDataAsZero was added for heatmap
+
+
+#For fantoms (reference-point)
+computeMatrix reference-point -S ${input_dir}/CheRNASeq_${variant}_r123.bw -R /path/to/bed_files/${regions}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_expression_${regions}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+#--missingDataAsZero was added for heatmap
+
+
+plotProfile -m /path/to/output_matrix/matrix_deepTools_expression_${regions}.mat.gz -out Che_RNAseq_${variant}/profile_expression_${regions}_all.pdf --plotTitle "Expression in ${regions} in ${variant} KD" --colors "#1c6bd8" "#6fa3ec" --samplesLabel 'Dox' 'Unt' --perGroup
+
+plotHeatmap -m  /path/to/output_matrix/matrix_deepTools_expression_${regions}.mat.gz -out Che_RNAseq_${variant}/heatmap_expression_${regions}.pdf --plotTitle "Expression in ${regions} in ${variant} KD" --samplesLabel Dox Unt --colorMap Blues_r --perGroup
+
+
+
+##ChIP profile
+#For enhancers (scale regions)
+computeMatrix scale-regions -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+
+plotProfile -m /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz -out profile_${ChIP_mark}_${regions}.pdf --plotTitle "${ChIP_mark} in ${regions}" --colors "#1c6bd8" "#6fa3ec" --samplesLabel 'Dox' 'Unt'
+
+#For fantoms (reference-point)
+computeMatrix reference-point -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}.bed -b 2000 -a 2000 -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+
+plotProfile -m /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz -out profile_${ChIP_mark}_${regions}.pdf --plotTitle "${ChIP_mark} in ${regions}" --colors "#1c6bd8" "#6fa3ec" --samplesLabel 'Dox' 'Unt'
+
+
+
+##Extract unt ChIP signal in regions of interest
+input_dir="path/to/bw_files"
+
+#For enhancers (scale regions)
+computeMatrix scale-regions -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}.bed \
+        --regionBodyLength 1000 --beforeRegionStartLength 500 --afterRegionStartLength 500 \
+        -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --outFileNameMatrix /path/to/output_matrix/ \
+        matrix_deepTools_${regions}_${ChIP_mark}.tsv --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+
+#For fantoms (reference-point)
+computeMatrix reference-point -b 0 -a 0 -S ${input_dir}/${ChIP_mark}.bw -R /path/to/bed_files/${regions}.bed \
+        --beforeRegionStartLength 500 --afterRegionStartLength 500 \
+        -o /path/to/output_matrix/matrix_deepTools_${regions}_${ChIP_mark}.mat.gz --outFileNameMatrix /path/to/output_matrix/ \
+        matrix_deepTools_${regions}_${ChIP_mark}.tsv --blackListFileName /GTF_hg19_References/hg19-blacklist.v2.bed
+
+
+
